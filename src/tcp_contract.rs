@@ -96,10 +96,10 @@ impl BidAskTcpModel {
     }
 
     pub fn serialize(&self, dest: &mut Vec<u8>) {
-        self.date_time.serialize(dest);
+        dest.extend_from_slice(self.id.as_bytes());
 
         dest.push(' ' as u8);
-        dest.extend_from_slice(self.id.as_bytes());
+        self.date_time.serialize(dest);
         dest.push(' ' as u8);
 
         dest.extend_from_slice(self.bid.to_string().as_bytes());
@@ -111,7 +111,30 @@ impl BidAskTcpModel {
 #[cfg(test)]
 mod tests {
 
+    use rust_extensions::date_time::DateTimeAsMicroseconds;
     use super::*;
+
+    #[test]
+    fn test_ser_der() {
+        let bidask = BidAskTcpModel{
+            ask: "1.13408000".to_string(),
+            bid: "1.13401000".to_string(),
+            id: "GBPUSD".to_string(),
+            date_time: BidAskTcpDateTime::Our(DateTimeAsMicroseconds::now()),
+        };
+        let mut bidask_vec: Vec<u8> = Vec::new();
+        bidask.serialize(&mut bidask_vec);
+        let bidask_str = std::str::from_utf8(&bidask_vec).unwrap();
+        let deserialized =
+        BidAskTcpModel::parse(bidask_str).unwrap();
+
+        let date_time = deserialized.date_time.unwrap_as_our_date();
+
+        assert_eq!(deserialized.id, "GBPUSD");
+        assert_eq!(deserialized.bid.to_string(), "1.13401000");
+        assert_eq!(deserialized.ask.to_string(), "1.13408000");
+        assert_eq!(date_time.to_rfc3339(), bidask.date_time.unwrap_as_our_date().to_rfc3339());
+    }
 
     #[test]
     fn test_parse() {

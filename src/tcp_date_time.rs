@@ -1,4 +1,4 @@
-use chrono::{Timelike, Datelike};
+use chrono::{Datelike, Timelike};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 const OUR_MARKER: u8 = 'O' as u8;
@@ -9,7 +9,6 @@ pub enum BidAskTcpDateTime {
 }
 
 impl BidAskTcpDateTime {
-    #[cfg(test)]
     pub fn unwrap_as_our_date(&self) -> &DateTimeAsMicroseconds {
         match self {
             BidAskTcpDateTime::Our(data) => data,
@@ -30,45 +29,38 @@ impl BidAskTcpDateTime {
         BidAskTcpDateTime::Our(date_time)
     }
 }
-fn parse_date_time(line: &str) -> DateTimeAsMicroseconds {
-    println!("{}", line);
-    let year: i32 = line[0..4].parse().unwrap();
-    let month: u32 = line[4..6].parse().unwrap();
-    let day: u32 = line[6..8].parse().unwrap();
-    let hour: u32 = line[8..10].parse().unwrap();
-    let min: u32 = line[10..12].parse().unwrap();
-    let sec: u32 = line[12..14].parse().unwrap();
-    
-    let micros_str = &line[14..];
-    let mut micro: i64 = micros_str.parse().unwrap();
-    
-        println!("{}", year);
-        println!("{}", month);
-        println!("{}", day);
-        println!("{}", hour);
-        println!("{}", min);
-        println!("{}", sec);
 
-    match micros_str.len() {
+fn parse_date_time(line: &str) -> DateTimeAsMicroseconds {
+    let year: i32 = line[1..5].parse().unwrap();
+    let month: u32 = line[5..7].parse().unwrap();
+    let day: u32 = line[7..9].parse().unwrap();
+    let hour: u32 = line[9..11].parse().unwrap();
+    let min: u32 = line[11..13].parse().unwrap();
+    let sec: u32 = line[13..15].parse().unwrap();
+
+    let millis_str = &line[15..];
+    let mut millis: i64 = millis_str.parse().unwrap();
+
+    match millis_str.len() {
         1 => {
-            micro *= 100_000;
+            millis *= 100_000;
         }
         2 => {
-            micro *= 10_000;
+            millis *= 10_000;
         }
         3 => {
-            micro *= 1_000;
+            millis *= 1_000;
         }
         4 => {
-            micro *= 100;
+            millis *= 100;
         }
         5 => {
-            micro *= 10;
+            millis *= 10;
         }
         _ => {}
     }
 
-    DateTimeAsMicroseconds::create(year, month, day, hour, min, sec, micro)
+    DateTimeAsMicroseconds::create(year, month, day, hour, min, sec, millis)
 }
 
 fn date_time_to_string(result: &mut Vec<u8>, dt: &DateTimeAsMicroseconds) {
@@ -104,5 +96,20 @@ fn push_with_leading_zero(result: &mut Vec<u8>, value: u8) {
         result.push(value);
     } else {
         result.extend_from_slice(value.to_string().as_bytes());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_parse() {
+        let result = BidAskTcpDateTime::parse("GBPUSD 20220921123348100 1.13401000 1.13408000");
+
+        let date_time = result.unwrap_as_our_date();
+
+        assert_eq!("2022-09-21T12:33:48.100", &date_time.to_rfc3339()[..23]);
     }
 }
