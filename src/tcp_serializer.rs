@@ -23,6 +23,9 @@ impl BidAskTcpSerializer {
 
 #[async_trait]
 impl TcpSocketSerializer<BidAskTcpContract> for BidAskTcpSerializer {
+
+    const PING_PACKET_IS_SINGLETONE: bool = true;
+
     fn serialize(&self, contract: BidAskTcpContract) -> Vec<u8> {
 
         let mut result = Vec::with_capacity(MAX_PACKET_CAPACITY);

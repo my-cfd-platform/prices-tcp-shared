@@ -10,6 +10,6 @@ my-tcp-sockets = { tag = "0.1.7", git = "https://github.com/MyJetTools/my-tcp-so
     "serialize_as_ref",
     "statefull_serializer",
 ] }
-rust-extensions = { tag = "0.1.2", git = "https://github.com/MyJetTools/rust-extensions.git" }
+rust-extensions = { tag = "0.1.3", git = "https://github.com/MyJetTools/rust-extensions.git" }
 async-trait = "*"
 chrono = "*"
