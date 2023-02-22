@@ -3,8 +3,7 @@ use my_tcp_sockets::{
     socket_reader::{ReadBuffer, ReadingTcpContractFail, SocketReader},
     TcpSocketSerializer,
 };
-
-use super::tcp_contract::BidAskTcpContract;
+use crate::BidAskTcpContract;
 
 static CLCR: &[u8] = &[13u8, 10u8];
 const MAX_PACKET_CAPACITY: usize = 255;
@@ -23,24 +22,14 @@ impl BidAskTcpSerializer {
 
 #[async_trait]
 impl TcpSocketSerializer<BidAskTcpContract> for BidAskTcpSerializer {
-
-    const PING_PACKET_IS_SINGLETONE: bool = true;
+    const PING_PACKET_IS_SINGLETONE: bool = false;
 
     fn serialize(&self, contract: BidAskTcpContract) -> Vec<u8> {
-
         let mut result = Vec::with_capacity(MAX_PACKET_CAPACITY);
-        contract.serialize(&mut result);
+        contract.serialize(&mut result).unwrap();
         result.extend_from_slice(CLCR);
         result
     }
-
-    fn serialize_ref(&self, contract: &BidAskTcpContract) -> Vec<u8> {
-        let mut result = Vec::with_capacity(MAX_PACKET_CAPACITY);
-        contract.serialize(&mut result);
-        result.extend_from_slice(CLCR);
-        result
-    }
-
     fn get_ping(&self) -> BidAskTcpContract {
         return BidAskTcpContract::Ping;
     }
@@ -52,12 +41,23 @@ impl TcpSocketSerializer<BidAskTcpContract> for BidAskTcpSerializer {
             .read_until_end_marker(&mut self.read_buffer, CLCR)
             .await?;
 
-        let result = std::str::from_utf8(&result[..result.len() - CLCR.len()]).unwrap();
+        let result = &result[..result.len() - CLCR.len()];
+        let result = BidAskTcpContract::parse(result);
 
-        Ok(BidAskTcpContract::parse(result))
+        match result {
+            Ok(result) => Ok(result),
+            Err(_) => Err(ReadingTcpContractFail::ErrorReadingSize),
+        }
     }
 
-    fn apply_packet(&mut self, _contract: &BidAskTcpContract) -> bool {
+    fn serialize_ref(&self, contract: &BidAskTcpContract) -> Vec<u8> {
+        let mut result = Vec::with_capacity(MAX_PACKET_CAPACITY);
+        contract.serialize(&mut result).unwrap();
+        result.extend_from_slice(CLCR);
+        result
+    }
+
+    fn apply_packet(&mut self, _: &BidAskTcpContract) -> bool {
         false
     }
 }
